@@ -1,14 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
 import { PageLoader } from "@/components/ui";
 import { CategorySheet } from "@/components/CategorySheet";
 import { PlusIcon, TrashIcon } from "@/components/icons";
-import { createClient } from "@/lib/supabase/client";
-import { useCategories, useDeleteCategory, useUser } from "@/lib/hooks";
+import { useCategories, useDeleteCategory } from "@/lib/hooks";
+import { clearDB } from "@/lib/store";
 import {
   buildBackup,
   download,
@@ -18,68 +17,54 @@ import {
 } from "@/lib/backup";
 
 export default function SettingsPage() {
-  const router = useRouter();
   const qc = useQueryClient();
-  const { email } = useUser();
   const { data: categories, isLoading } = useCategories();
   const deleteCategory = useDeleteCategory();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [catOpen, setCatOpen] = useState(false);
-  const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  async function signOut() {
-    await createClient().auth.signOut();
-    router.replace("/login");
+  function exportJson() {
+    const b = buildBackup();
+    download(
+      `spendtrack-backup-${b.exportedAt.slice(0, 10)}.json`,
+      JSON.stringify(b, null, 2),
+      "application/json"
+    );
   }
 
-  async function exportJson() {
-    setBusy("json");
-    try {
-      const b = await buildBackup();
-      download(
-        `spendtrack-backup-${b.exportedAt.slice(0, 10)}.json`,
-        JSON.stringify(b, null, 2),
-        "application/json"
-      );
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function exportCsv() {
-    setBusy("csv");
-    try {
-      const b = await buildBackup();
-      download(
-        `spendtrack-transactions-${b.exportedAt.slice(0, 10)}.csv`,
-        transactionsToCsv(b),
-        "text/csv"
-      );
-    } finally {
-      setBusy(null);
-    }
+  function exportCsv() {
+    const b = buildBackup();
+    download(
+      `spendtrack-transactions-${b.exportedAt.slice(0, 10)}.csv`,
+      transactionsToCsv(b),
+      "text/csv"
+    );
   }
 
   async function onImportFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (!confirm("Import will add the backup's data to this account. Continue?")) return;
-    setBusy("import");
+    if (!confirm("Importing will replace all current data on this device. Continue?")) return;
     setMessage(null);
     try {
       const parsed = JSON.parse(await file.text()) as Backup;
       if (parsed.app !== "spendtrack") throw new Error("Not a SpendTrack backup");
-      await restoreBackup(parsed);
+      restoreBackup(parsed);
       qc.invalidateQueries();
-      setMessage("Backup imported.");
+      setMessage("Backup restored.");
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Import failed");
-    } finally {
-      setBusy(null);
     }
+  }
+
+  function clearAll() {
+    if (!confirm("Delete ALL data on this device? Export a backup first if unsure.")) return;
+    clearDB();
+    qc.invalidateQueries();
+    setMessage("All data cleared.");
   }
 
   if (isLoading) return <PageLoader />;
@@ -90,15 +75,6 @@ export default function SettingsPage() {
   return (
     <div>
       <PageHeader title="Settings" />
-
-      {/* Account */}
-      <section className="card mb-4">
-        <p className="text-xs uppercase tracking-wide text-muted">Account</p>
-        <p className="mt-1 truncate text-sm text-text">{email ?? "—"}</p>
-        <button onClick={signOut} className="btn-ghost mt-3 w-full text-negative">
-          Sign out
-        </button>
-      </section>
 
       {/* Categories */}
       <section className="card mb-4">
@@ -124,22 +100,22 @@ export default function SettingsPage() {
       <section className="card mb-4">
         <p className="text-xs uppercase tracking-wide text-muted">Backup</p>
         <p className="mt-1 text-sm text-muted">
-          Your data lives in the cloud. Export a copy any time.
+          Your data is stored on this device. Export a copy regularly so you never
+          lose it.
         </p>
         <div className="mt-3 grid grid-cols-2 gap-3">
-          <button onClick={exportJson} disabled={!!busy} className="btn-ghost text-sm">
-            {busy === "json" ? "Exporting…" : "Export JSON"}
+          <button onClick={exportJson} className="btn-ghost text-sm">
+            Export JSON
           </button>
-          <button onClick={exportCsv} disabled={!!busy} className="btn-ghost text-sm">
-            {busy === "csv" ? "Exporting…" : "Export CSV"}
+          <button onClick={exportCsv} className="btn-ghost text-sm">
+            Export CSV
           </button>
         </div>
         <button
           onClick={() => fileRef.current?.click()}
-          disabled={!!busy}
           className="btn-ghost mt-3 w-full text-sm"
         >
-          {busy === "import" ? "Importing…" : "Import JSON backup"}
+          Import JSON backup
         </button>
         <input
           ref={fileRef}
@@ -151,8 +127,16 @@ export default function SettingsPage() {
         {message && <p className="mt-2 text-sm text-accent">{message}</p>}
       </section>
 
+      {/* Danger zone */}
+      <section className="card mb-4">
+        <p className="text-xs uppercase tracking-wide text-muted">Data</p>
+        <button onClick={clearAll} className="btn-ghost mt-2 w-full text-negative">
+          Clear all data
+        </button>
+      </section>
+
       <p className="px-1 text-center text-xs text-muted">
-        SpendTrack · amounts in INR (₹)
+        SpendTrack · stored on this device · amounts in INR (₹)
       </p>
 
       <CategorySheet open={catOpen} onClose={() => setCatOpen(false)} />

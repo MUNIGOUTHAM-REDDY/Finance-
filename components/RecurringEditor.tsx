@@ -90,6 +90,7 @@ export function RecurringEditor({
       installments_total: installments ? Number(installments) : null,
       next_due_date: nextDue,
       auto_post: false,
+      active: editing ? item!.active : true,
     };
 
     if (editing) await update.mutateAsync({ id: item!.id, ...payload });

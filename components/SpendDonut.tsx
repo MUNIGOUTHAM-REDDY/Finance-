@@ -21,7 +21,7 @@ export function SpendDonut({ data, total }: { data: Slice[]; total: number }) {
               dataKey="value"
               innerRadius={44}
               outerRadius={62}
-              paddingAngle={2}
+              paddingAngle={data.length > 1 ? 2 : 0}
               stroke="none"
             >
               {data.map((s, i) => (
