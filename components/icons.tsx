@@ -19,6 +19,7 @@ import {
   ChartPieSlice,
   Target,
   UserCircle,
+  List,
   type IconProps,
 } from "@phosphor-icons/react";
 
@@ -38,3 +39,4 @@ export const SwapIcon = (p: IconProps) => <ArrowsLeftRight {...p} />;
 export const InsightsIcon = (p: IconProps) => <ChartPieSlice {...p} />;
 export const BudgetIcon = (p: IconProps) => <Target {...p} />;
 export const ProfileIcon = (p: IconProps) => <UserCircle {...p} />;
+export const MenuIcon = (p: IconProps) => <List {...p} />;

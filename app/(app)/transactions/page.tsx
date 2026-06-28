@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
 import { PageLoader, EmptyState } from "@/components/ui";
 import { TransactionRow } from "@/components/TransactionRow";
-import { TransactionEditor } from "@/components/TransactionEditor";
 import { ChevronIcon, SearchIcon } from "@/components/icons";
 import { useTransactions } from "@/lib/hooks";
 import { formatDate } from "@/lib/format";
@@ -31,10 +31,10 @@ function monthRangeOffset(offset: number) {
 }
 
 export default function TransactionsPage() {
+  const router = useRouter();
   const [offset, setOffset] = useState(0);
   const [type, setType] = useState<TransactionType | "all">("all");
   const [search, setSearch] = useState("");
-  const [editing, setEditing] = useState<TransactionWithRefs | null>(null);
 
   const month = useMemo(() => monthRangeOffset(offset), [offset]);
   const { data, isLoading } = useTransactions({
@@ -116,15 +116,17 @@ export default function TransactionsPage() {
               </p>
               <div className="card divide-y divide-border py-0">
                 {items.map((t) => (
-                  <TransactionRow key={t.id} tx={t} onClick={() => setEditing(t)} />
+                  <TransactionRow
+                    key={t.id}
+                    tx={t}
+                    onClick={() => router.push(`/transaction/${t.id}`)}
+                  />
                 ))}
               </div>
             </div>
           ))}
         </div>
       )}
-
-      <TransactionEditor tx={editing} onClose={() => setEditing(null)} />
     </div>
   );
 }

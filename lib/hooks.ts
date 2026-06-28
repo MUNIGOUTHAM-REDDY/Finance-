@@ -103,6 +103,13 @@ export function useTransactions(filters: TxFilters = {}) {
   });
 }
 
+export function useTransaction(id: string) {
+  return useQuery({
+    queryKey: ["transactions", "one", id],
+    queryFn: async (): Promise<TransactionWithRefs | null> => store.getTransaction(id),
+  });
+}
+
 export function useCreateTransaction() {
   const invalidate = useInvalidateMoney();
   return useMutation({

@@ -13,6 +13,17 @@ const TYPES: { value: AccountType; label: string; icon: string }[] = [
   { value: "wallet", label: "Wallet", icon: "👛" },
 ];
 
+const CARD_COLORS = [
+  "#2a2a30", // Black Titanium
+  "#3b82f6", // Blue
+  "#22c55e", // Green
+  "#f59e0b", // Orange
+  "#ef4444", // Red
+  "#8b5cf6", // Purple
+  "#14b8a6", // Teal
+  "#475569", // Slate
+];
+
 export function AccountEditor({
   account,
   open,
@@ -30,6 +41,7 @@ export function AccountEditor({
   const [type, setType] = useState<AccountType>("bank");
   const [opening, setOpening] = useState("0");
   const [icon, setIcon] = useState("🏦");
+  const [color, setColor] = useState(CARD_COLORS[0]);
 
   useEffect(() => {
     if (open) {
@@ -37,6 +49,7 @@ export function AccountEditor({
       setType(account?.type ?? "bank");
       setOpening(account ? String(account.opening_balance) : "0");
       setIcon(account?.icon ?? "🏦");
+      setColor(account?.color ?? CARD_COLORS[0]);
     }
   }, [open, account]);
 
@@ -47,6 +60,7 @@ export function AccountEditor({
       type,
       opening_balance: Number(opening) || 0,
       icon,
+      color,
     };
     if (editing) await update.mutateAsync({ id: account!.id, ...payload });
     else await create.mutateAsync(payload);
@@ -104,6 +118,23 @@ export function AccountEditor({
           />
         </Field>
       </div>
+
+      <Field label="Card colour">
+        <div className="flex flex-wrap gap-2.5">
+          {CARD_COLORS.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setColor(c)}
+              aria-label={`Colour ${c}`}
+              className={`h-8 w-8 rounded-full transition ${
+                color === c ? "ring-2 ring-white ring-offset-2 ring-offset-surface" : ""
+              }`}
+              style={{ background: `linear-gradient(135deg, ${c}, #0a0a0c)` }}
+            />
+          ))}
+        </div>
+      </Field>
 
       {editing && (
         <button

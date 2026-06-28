@@ -283,6 +283,10 @@ export interface NewTransaction {
   note?: string | null;
 }
 
+export function getTransaction(id: string): TransactionWithRefs | null {
+  return listTransactions().find((t) => t.id === id) ?? null;
+}
+
 export function createTransaction(input: NewTransaction): void {
   mutate((db) => {
     db.transactions.push({

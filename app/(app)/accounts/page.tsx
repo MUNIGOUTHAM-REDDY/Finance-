@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { PageLoader, EmptyState } from "@/components/ui";
 import { AccountEditor } from "@/components/AccountEditor";
+import { AccountCard } from "@/components/AccountCard";
 import { PlusIcon } from "@/components/icons";
 import { useAccounts } from "@/lib/hooks";
 import { formatCurrency } from "@/lib/format";
@@ -56,26 +57,9 @@ export default function AccountsPage() {
           }
         />
       ) : (
-        <div className="card divide-y divide-border py-0">
+        <div className="space-y-3">
           {live.map((a) => (
-            <button
-              key={a.id}
-              onClick={() => openEdit(a)}
-              className="flex w-full items-center gap-3 py-3.5 text-left"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-2 text-lg">
-                {a.icon ?? "💼"}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium text-text">{a.name}</p>
-                <p className="text-xs capitalize text-muted">{a.type.replace("_", " ")}</p>
-              </div>
-              <p
-                className={`font-semibold ${a.balance < 0 ? "text-negative" : "text-text"}`}
-              >
-                {formatCurrency(a.balance)}
-              </p>
-            </button>
+            <AccountCard key={a.id} account={a} onClick={() => openEdit(a)} />
           ))}
         </div>
       )}
