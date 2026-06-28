@@ -47,7 +47,7 @@ export default function DashboardPage() {
       if (t.type === "income") income += t.amount;
       if (t.type === "expense") {
         const name = t.category?.name ?? "Uncategorised";
-        const color = t.category?.color ?? "#5b8cff";
+        const color = t.category?.color ?? "#3b82f6";
         const cur = byCat.get(name);
         if (cur) cur.value += t.amount;
         else byCat.set(name, { name, value: t.amount, color });

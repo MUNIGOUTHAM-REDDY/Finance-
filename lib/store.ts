@@ -84,7 +84,7 @@ const DEFAULT_CATEGORIES: Omit<Category, "id" | "user_id" | "created_at">[] = [
 
 const DEFAULT_ACCOUNTS: Omit<Account, "id" | "user_id" | "created_at" | "balance">[] = [
   { name: "Cash", type: "cash", opening_balance: 0, currency: "INR", icon: "💵", color: "#22c55e", archived: false },
-  { name: "UPI", type: "upi", opening_balance: 0, currency: "INR", icon: "📱", color: "#5b8cff", archived: false },
+  { name: "UPI", type: "upi", opening_balance: 0, currency: "INR", icon: "📱", color: "#3b82f6", archived: false },
 ];
 
 function seed(db: DB): DB {

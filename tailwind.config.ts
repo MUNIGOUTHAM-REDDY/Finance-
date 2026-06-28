@@ -7,18 +7,24 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-poppins)", "system-ui", "-apple-system", "sans-serif"],
+      },
       colors: {
-        bg: "#0b0f17",
-        surface: "#151b27",
-        "surface-2": "#1d2535",
-        border: "#27314a",
-        muted: "#8b97b0",
-        text: "#e7ecf5",
-        accent: "#5b8cff",
-        "accent-soft": "#1e2c52",
-        positive: "#34d399",
-        negative: "#f87171",
-        warn: "#fbbf24",
+        // Neutral black base — no blue tint.
+        bg: "#000000",
+        surface: "#121214",
+        "surface-2": "#1c1c20",
+        border: "#2a2a30",
+        muted: "#8c8c94",
+        text: "#f4f4f6",
+        // Blue is a secondary accent, used sparingly for primary actions.
+        accent: "#3b82f6",
+        "accent-soft": "#16233d",
+        // Semantic accents.
+        positive: "#22c55e", // green
+        negative: "#ef4444", // red
+        warn: "#f59e0b", // orange
       },
       borderRadius: {
         xl: "1rem",

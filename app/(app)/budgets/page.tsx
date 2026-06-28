@@ -8,9 +8,9 @@ import { useBudgets, useCategories, useTransactions } from "@/lib/hooks";
 import { formatCurrency, monthRange } from "@/lib/format";
 
 function barColor(pct: number) {
-  if (pct >= 1) return "bg-negative";
-  if (pct >= 0.8) return "bg-warn";
-  return "bg-accent";
+  if (pct >= 1) return "bg-negative"; // red — over
+  if (pct >= 0.8) return "bg-warn"; // orange — close
+  return "bg-positive"; // green — healthy
 }
 
 export default function BudgetsPage() {

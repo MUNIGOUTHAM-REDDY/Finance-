@@ -50,8 +50,8 @@ function encodePng(size, pixel) {
   ]);
 }
 
-const ACCENT = [91, 140, 255]; // #5b8cff
-const ACCENT_DK = [58, 99, 196]; // darker accent for a subtle vertical gradient
+const ACCENT = [59, 130, 246]; // #3b82f6 vibrant blue
+const ACCENT_DK = [37, 99, 235]; // #2563eb darker accent for a subtle gradient
 const WHITE = [255, 255, 255];
 
 // Minimal ascending bar-chart mark on a brand-accent tile.

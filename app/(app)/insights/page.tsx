@@ -45,12 +45,21 @@ export default function InsightsPage() {
     }
 
     // Biggest categories this month.
-    const byCat = new Map<string, { name: string; icon: string | null; amount: number }>();
+    const byCat = new Map<
+      string,
+      { name: string; icon: string | null; color: string; amount: number }
+    >();
     for (const t of expenses) {
       const name = t.category?.name ?? "Uncategorised";
       const cur = byCat.get(name);
       if (cur) cur.amount += t.amount;
-      else byCat.set(name, { name, icon: t.category?.icon ?? null, amount: t.amount });
+      else
+        byCat.set(name, {
+          name,
+          icon: t.category?.icon ?? null,
+          color: t.category?.color ?? "#3b82f6",
+          amount: t.amount,
+        });
     }
     const top = [...byCat.values()].sort((a, b) => b.amount - a.amount).slice(0, 6);
     const maxCat = top[0]?.amount ?? 1;
@@ -111,7 +120,7 @@ export default function InsightsPage() {
                     {stats.daily.map((d, i) => (
                       <Cell
                         key={i}
-                        fill={i + 1 === stats.dayOfMonth ? "#5b8cff" : "#27314a"}
+                        fill={i + 1 === stats.dayOfMonth ? "#3b82f6" : "#3a3a42"}
                       />
                     ))}
                   </Bar>
@@ -148,8 +157,11 @@ export default function InsightsPage() {
                     </div>
                     <div className="h-2 w-full overflow-hidden rounded-full bg-surface-2">
                       <div
-                        className="h-full rounded-full bg-accent"
-                        style={{ width: `${(c.amount / stats.maxCat) * 100}%` }}
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${(c.amount / stats.maxCat) * 100}%`,
+                          background: c.color,
+                        }}
                       />
                     </div>
                   </div>
