@@ -21,8 +21,15 @@ Mac required.
 - **Recurring** EMIs, rent and subscriptions with due dates and one-tap "mark paid".
 - **Loans** to/from friends with repayments and settle.
 - **Dashboard** — total balance, this-month spent vs income, spend-by-category.
-- **Backup** — export everything to JSON/CSV and re-import any time.
-- Dark, minimal UI. Offline app shell via service worker.
+- **Budgets & alerts** — per-category and overall monthly limits with progress
+  bars and over-budget warnings on the dashboard.
+- **Insights** — month-over-month trend, average/day, projected spend, daily
+  bars, and biggest categories.
+- **Profile** — name, email, currency, and a hub for budgets/insights/data.
+- **Backup** — export everything to JSON/CSV and re-import any time, with a nudge
+  when a backup is overdue.
+- Dark, minimal UI with Phosphor icons, haptics, and animated sheets. Offline
+  app shell via service worker.
 
 ## Tech
 

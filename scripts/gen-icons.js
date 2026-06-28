@@ -50,34 +50,45 @@ function encodePng(size, pixel) {
   ]);
 }
 
-const BG = [11, 15, 23]; // #0b0f17
 const ACCENT = [91, 140, 255]; // #5b8cff
-const WHITE = [231, 236, 245];
+const ACCENT_DK = [58, 99, 196]; // darker accent for a subtle vertical gradient
+const WHITE = [255, 255, 255];
 
+// Minimal ascending bar-chart mark on a brand-accent tile.
 function makeIcon(size, maskable) {
-  const cx = size / 2;
-  const cy = size / 2;
-  const coin = size * (maskable ? 0.3 : 0.34);
-  const ring = coin * 0.7;
-  const bar = coin * 0.16; // the "₹"-like double bar thickness
+  // Full-bleed accent background (works for both maskable and normal icons).
+  const bw = size * 0.15; // bar width
+  const gap = size * 0.075; // gap between bars
+  const totalW = 3 * bw + 2 * gap;
+  const startX = (size - totalW) / 2;
+  const baseline = size * 0.74;
+  const heights = [0.26, 0.4, 0.54].map((h) => h * size);
+  const radius = bw * 0.28;
+
+  function inBar(x, y, bx, top) {
+    if (x < bx || x > bx + bw || y < top || y > baseline) return false;
+    // round the top corners
+    const rx = Math.min(x - bx, bx + bw - x);
+    if (y < top + radius && rx < radius) {
+      const dx = radius - rx;
+      const dy = radius - (y - top);
+      if (dx * dx + dy * dy > radius * radius) return false;
+    }
+    return true;
+  }
+
   return (x, y) => {
-    const dx = x - cx;
-    const dy = y - cy;
-    const d = Math.sqrt(dx * dx + dy * dy);
-    // Maskable: full-bleed accent. Normal: brand-dark with coin.
-    let base = maskable ? ACCENT : BG;
-    if (d <= coin) base = ACCENT;
-    if (d <= ring) base = WHITE;
-    // Two horizontal bars near the top of the inner circle (rupee-ish).
-    if (d <= ring) {
-      const ny = y - (cy - ring * 0.55);
-      const ny2 = y - (cy - ring * 0.2);
-      if ((Math.abs(ny) < bar / 2 || Math.abs(ny2) < bar / 2) && Math.abs(dx) < ring * 0.55) {
-        base = ACCENT;
-      }
-      // vertical stem
-      if (x > cx - bar / 2 && x < cx + bar / 2 && y > cy - ring * 0.55 && y < cy + ring * 0.5) {
-        base = ACCENT;
+    // subtle top-to-bottom gradient on the accent background
+    const t = y / size;
+    const base = [
+      Math.round(ACCENT[0] + (ACCENT_DK[0] - ACCENT[0]) * t),
+      Math.round(ACCENT[1] + (ACCENT_DK[1] - ACCENT[1]) * t),
+      Math.round(ACCENT[2] + (ACCENT_DK[2] - ACCENT[2]) * t),
+    ];
+    for (let i = 0; i < 3; i++) {
+      const bx = startX + i * (bw + gap);
+      if (inBar(x, y, bx, baseline - heights[i])) {
+        return [WHITE[0], WHITE[1], WHITE[2], 255];
       }
     }
     return [base[0], base[1], base[2], 255];

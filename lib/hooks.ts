@@ -6,9 +6,11 @@ import type { TxFilters, NewTransaction } from "@/lib/store";
 import type {
   Account,
   AccountWithBalance,
+  Budget,
   Category,
   Loan,
   LoanWithOutstanding,
+  Profile,
   Recurring,
   Transaction,
   TransactionWithRefs,
@@ -220,5 +222,45 @@ export function useDeleteLoan() {
   return useMutation({
     mutationFn: async (id: string) => store.deleteLoan(id),
     onSuccess: invalidate,
+  });
+}
+
+// ---------------------------------------------------------------- budgets
+
+export function useBudgets() {
+  return useQuery({
+    queryKey: ["budgets"],
+    queryFn: async (): Promise<Budget[]> => store.listBudgets(),
+  });
+}
+
+export function useUpsertBudget() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      categoryId,
+      amount,
+    }: {
+      categoryId: string | null;
+      amount: number;
+    }) => store.upsertBudget(categoryId, amount),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["budgets"] }),
+  });
+}
+
+// ---------------------------------------------------------------- profile
+
+export function useProfile() {
+  return useQuery({
+    queryKey: ["profile"],
+    queryFn: async (): Promise<Profile> => store.getProfile(),
+  });
+}
+
+export function useUpdateProfile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (patch: Partial<Profile>) => store.updateProfile(patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["profile"] }),
   });
 }

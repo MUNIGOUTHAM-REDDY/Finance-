@@ -12,6 +12,7 @@ import { Sheet, Segmented, Spinner } from "@/components/ui";
 import { AmountKeypad } from "@/components/AmountKeypad";
 import { useAccounts, useCategories, useCreateTransaction } from "@/lib/hooks";
 import { todayISO } from "@/lib/format";
+import { haptic } from "@/lib/haptics";
 import type { TransactionType } from "@/lib/types";
 
 type QuickType = "expense" | "income" | "transfer";
@@ -85,6 +86,7 @@ function QuickAddSheet({ open, onClose }: { open: boolean; onClose: () => void }
         date,
         note: note.trim() || null,
       });
+      haptic(18);
       reset();
       onClose();
     } catch (e) {

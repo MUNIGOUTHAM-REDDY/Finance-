@@ -99,6 +99,19 @@ export interface LoanWithOutstanding extends Loan {
   outstanding: number;
 }
 
+export interface Budget {
+  id: string;
+  category_id: string | null; // null = overall monthly budget
+  amount: number;
+}
+
+export interface Profile {
+  name: string;
+  email: string;
+  currency: string; // ISO code, default INR
+  last_backup_at: string | null; // ISO timestamp of last export
+}
+
 // ---- Joined / display helpers ----
 
 export interface TransactionWithRefs extends Transaction {

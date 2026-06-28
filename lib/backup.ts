@@ -1,5 +1,13 @@
-import { exportDB, replaceDB, type DB } from "@/lib/store";
-import type { Account, Category, Loan, Recurring, Transaction } from "@/lib/types";
+import { defaultProfile, exportDB, replaceDB, type DB } from "@/lib/store";
+import type {
+  Account,
+  Budget,
+  Category,
+  Loan,
+  Profile,
+  Recurring,
+  Transaction,
+} from "@/lib/types";
 
 export interface Backup extends DB {
   app: "spendtrack";
@@ -10,6 +18,8 @@ export interface Backup extends DB {
   loans: Loan[];
   recurring: Recurring[];
   transactions: Transaction[];
+  budgets: Budget[];
+  profile: Profile;
 }
 
 export function buildBackup(): Backup {
@@ -62,5 +72,7 @@ export function restoreBackup(b: Backup): void {
     transactions: b.transactions ?? [],
     recurring: b.recurring ?? [],
     loans: b.loans ?? [],
+    budgets: b.budgets ?? [],
+    profile: b.profile ?? defaultProfile(),
   });
 }

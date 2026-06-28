@@ -1,6 +1,16 @@
 // Formatting + date helpers shared across the app.
 
-export function formatCurrency(amount: number, currency = "INR"): string {
+// App-wide active currency (set from the user's profile on load). Display only —
+// changing it does not convert existing amounts.
+let activeCurrency = "INR";
+export function setActiveCurrency(code: string) {
+  if (code) activeCurrency = code;
+}
+export function getActiveCurrency() {
+  return activeCurrency;
+}
+
+export function formatCurrency(amount: number, currency = activeCurrency): string {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency,
@@ -9,7 +19,7 @@ export function formatCurrency(amount: number, currency = "INR"): string {
 }
 
 // Compact signed amount, e.g. "-₹1,200" / "+₹500".
-export function formatSigned(amount: number, currency = "INR"): string {
+export function formatSigned(amount: number, currency = activeCurrency): string {
   const sign = amount < 0 ? "-" : "+";
   return sign + formatCurrency(Math.abs(amount), currency);
 }

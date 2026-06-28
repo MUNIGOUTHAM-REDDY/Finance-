@@ -2,6 +2,7 @@
 
 import { PlusIcon } from "@/components/icons";
 import { useQuickAdd } from "@/components/QuickAdd";
+import { haptic } from "@/lib/haptics";
 
 export function Fab() {
   const { open } = useQuickAdd();
@@ -10,7 +11,10 @@ export function Fab() {
       <div className="flex w-full max-w-md justify-end px-5">
         <button
           type="button"
-          onClick={open}
+          onClick={() => {
+            haptic(12);
+            open();
+          }}
           aria-label="Add transaction"
           className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-lg shadow-accent/30 transition active:scale-95"
         >

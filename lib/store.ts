@@ -6,9 +6,11 @@ import { todayISO } from "@/lib/format";
 import type {
   Account,
   AccountWithBalance,
+  Budget,
   Category,
   Loan,
   LoanWithOutstanding,
+  Profile,
   Recurring,
   Transaction,
   TransactionType,
@@ -23,10 +25,24 @@ export interface DB {
   transactions: Transaction[];
   recurring: Recurring[];
   loans: Loan[];
+  budgets: Budget[];
+  profile: Profile;
+}
+
+export function defaultProfile(): Profile {
+  return { name: "", email: "", currency: "INR", last_backup_at: null };
 }
 
 function emptyDB(): DB {
-  return { accounts: [], categories: [], transactions: [], recurring: [], loans: [] };
+  return {
+    accounts: [],
+    categories: [],
+    transactions: [],
+    recurring: [],
+    loans: [],
+    budgets: [],
+    profile: defaultProfile(),
+  };
 }
 
 function uid(): string {
@@ -104,6 +120,8 @@ export function getDB(): DB {
       transactions: parsed.transactions ?? [],
       recurring: parsed.recurring ?? [],
       loans: parsed.loans ?? [],
+      budgets: parsed.budgets ?? [],
+      profile: { ...defaultProfile(), ...(parsed.profile ?? {}) },
     };
   } catch {
     return seed(emptyDB());
@@ -465,6 +483,43 @@ function addMonths(iso: string, n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+// ----------------------------------------------------------------- budgets
+
+export function listBudgets(): Budget[] {
+  return [...getDB().budgets];
+}
+
+// Set (or clear) the monthly budget for a category, or overall (categoryId=null).
+export function upsertBudget(categoryId: string | null, amount: number): void {
+  mutate((db) => {
+    const existing = db.budgets.find((b) => b.category_id === categoryId);
+    if (amount <= 0) {
+      db.budgets = db.budgets.filter((b) => b.category_id !== categoryId);
+      return;
+    }
+    if (existing) existing.amount = amount;
+    else db.budgets.push({ id: uid(), category_id: categoryId, amount });
+  });
+}
+
+export function deleteBudget(id: string): void {
+  mutate((db) => {
+    db.budgets = db.budgets.filter((b) => b.id !== id);
+  });
+}
+
+// ----------------------------------------------------------------- profile
+
+export function getProfile(): Profile {
+  return getDB().profile;
+}
+
+export function updateProfile(patch: Partial<Profile>): void {
+  mutate((db) => {
+    db.profile = { ...db.profile, ...patch };
+  });
+}
+
 // ----------------------------------------------------------------- backup
 
 export function exportDB(): DB {
@@ -478,6 +533,8 @@ export function replaceDB(db: DB): void {
     transactions: db.transactions ?? [],
     recurring: db.recurring ?? [],
     loans: db.loans ?? [],
+    budgets: db.budgets ?? [],
+    profile: { ...defaultProfile(), ...(db.profile ?? {}) },
   });
 }
 

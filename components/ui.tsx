@@ -64,11 +64,11 @@ export function Sheet({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <div
-        className="absolute inset-0 bg-black/60"
+        className="animate-fade absolute inset-0 bg-black/60"
         onClick={onClose}
         aria-hidden
       />
-      <div className="relative max-h-[92vh] w-full overflow-y-auto rounded-t-2xl border border-border bg-surface p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:max-w-md sm:rounded-2xl">
+      <div className="animate-sheet relative max-h-[92vh] w-full overflow-y-auto rounded-t-2xl border border-border bg-surface p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:max-w-md sm:rounded-2xl">
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border sm:hidden" />
         {title && (
           <h2 className="mb-4 text-lg font-semibold text-text">{title}</h2>

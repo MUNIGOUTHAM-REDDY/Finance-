@@ -7,10 +7,13 @@ import { PageLoader, EmptyState } from "@/components/ui";
 import { TransactionRow } from "@/components/TransactionRow";
 import { SpendDonut, type Slice } from "@/components/SpendDonut";
 import { useQuickAdd } from "@/components/QuickAdd";
-import { SettingsIcon } from "@/components/icons";
+import { ProfileIcon } from "@/components/icons";
 import {
   useAccounts,
+  useBudgets,
+  useCategories,
   useLoans,
+  useProfile,
   useRecurring,
   useTransactions,
 } from "@/lib/hooks";
@@ -27,6 +30,9 @@ export default function DashboardPage() {
   const { data: recent } = useTransactions({ limit: 6 });
   const { data: loans } = useLoans();
   const { data: recurring } = useRecurring();
+  const { data: budgets } = useBudgets();
+  const { data: categories } = useCategories();
+  const { data: profile } = useProfile();
 
   const totalBalance = useMemo(
     () => (accounts ?? []).filter((a) => !a.archived).reduce((s, a) => s + a.balance, 0),
@@ -52,6 +58,30 @@ export default function DashboardPage() {
     return { spent, income, slices };
   }, [monthTx]);
 
+  // Budgets at/over 80% of their monthly limit.
+  const budgetAlerts = useMemo(() => {
+    if (!budgets || budgets.length === 0) return [];
+    const spentById = new Map<string, number>();
+    let total = 0;
+    for (const t of monthTx ?? []) {
+      if (t.type !== "expense") continue;
+      total += t.amount;
+      if (t.category_id)
+        spentById.set(t.category_id, (spentById.get(t.category_id) ?? 0) + t.amount);
+    }
+    const catName = (id: string) => categories?.find((c) => c.id === id)?.name ?? "Budget";
+    return budgets
+      .map((b) => {
+        const spent = b.category_id === null ? total : spentById.get(b.category_id) ?? 0;
+        return {
+          label: b.category_id === null ? "Overall" : catName(b.category_id),
+          pct: spent / b.amount,
+        };
+      })
+      .filter((a) => a.pct >= 0.8)
+      .sort((a, b) => b.pct - a.pct);
+  }, [budgets, monthTx, categories]);
+
   const upcoming = useMemo(
     () =>
       (recurring ?? [])
@@ -76,6 +106,14 @@ export default function DashboardPage() {
     [loans]
   );
 
+  // Nudge to back up if there's data and no export in the last 7 days.
+  const backupStale = useMemo(() => {
+    if (!recent || recent.length === 0) return false;
+    const last = profile?.last_backup_at;
+    if (!last) return true;
+    return new Date().getTime() - new Date(last).getTime() > 7 * 86_400_000;
+  }, [recent, profile]);
+
   if (la || lt) return <PageLoader />;
 
   return (
@@ -85,11 +123,11 @@ export default function DashboardPage() {
         subtitle={month.label}
         action={
           <Link
-            href="/settings"
+            href="/profile"
             className="btn-ghost px-3 py-2 text-muted"
-            aria-label="Settings"
+            aria-label="Profile"
           >
-            <SettingsIcon className="h-5 w-5" />
+            <ProfileIcon className="h-6 w-6" />
           </Link>
         }
       />
@@ -116,12 +154,36 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Budget alerts */}
+      {budgetAlerts.length > 0 && (
+        <Link
+          href="/budgets"
+          className={`card mb-4 block ${
+            budgetAlerts[0].pct >= 1 ? "border-negative/40" : "border-warn/40"
+          }`}
+        >
+          <p className="text-sm font-medium text-text">
+            {budgetAlerts[0].pct >= 1 ? "⚠️ Over budget" : "Heads up on budget"}
+          </p>
+          <p className="mt-1 text-xs text-muted">
+            {budgetAlerts
+              .slice(0, 3)
+              .map((a) => `${a.label} ${Math.round(a.pct * 100)}%`)
+              .join(" · ")}
+            {budgetAlerts.length > 3 ? " · …" : ""}
+          </p>
+        </Link>
+      )}
+
       {/* Spend by category */}
       {slices.length > 0 && (
-        <div className="card mb-4">
-          <p className="mb-3 text-sm font-medium text-text">Where it went</p>
+        <Link href="/insights" className="card mb-4 block">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm font-medium text-text">Where it went</p>
+            <span className="text-xs text-accent">Insights →</span>
+          </div>
           <SpendDonut data={slices} total={spent} />
-        </div>
+        </Link>
       )}
 
       {/* Upcoming + loans */}
@@ -176,6 +238,16 @@ export default function DashboardPage() {
           />
         )}
       </div>
+
+      {/* Backup nudge */}
+      {backupStale && (
+        <Link
+          href="/settings"
+          className="mt-4 block rounded-xl border border-border bg-surface-2 px-4 py-3 text-sm text-muted"
+        >
+          💾 Back up your data — it lives only on this device. Tap to export.
+        </Link>
+      )}
     </div>
   );
 }

@@ -9,6 +9,7 @@ import {
   RepeatIcon,
   UsersIcon,
 } from "@/components/icons";
+import { haptic } from "@/lib/haptics";
 
 const tabs = [
   { href: "/", label: "Home", Icon: HomeIcon },
@@ -30,6 +31,7 @@ export function BottomNav() {
             <Link
               key={href}
               href={href}
+              onClick={() => haptic(6)}
               className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] transition ${
                 active ? "text-accent" : "text-muted"
               }`}

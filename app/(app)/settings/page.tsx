@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { PageLoader } from "@/components/ui";
 import { CategorySheet } from "@/components/CategorySheet";
 import { PlusIcon, TrashIcon } from "@/components/icons";
-import { useCategories, useDeleteCategory } from "@/lib/hooks";
+import { useCategories, useDeleteCategory, useUpdateProfile } from "@/lib/hooks";
 import { clearDB } from "@/lib/store";
 import {
   buildBackup,
@@ -20,7 +20,12 @@ export default function SettingsPage() {
   const qc = useQueryClient();
   const { data: categories, isLoading } = useCategories();
   const deleteCategory = useDeleteCategory();
+  const updateProfile = useUpdateProfile();
   const fileRef = useRef<HTMLInputElement>(null);
+
+  function markBackedUp() {
+    updateProfile.mutate({ last_backup_at: new Date().toISOString() });
+  }
 
   const [catOpen, setCatOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -32,6 +37,7 @@ export default function SettingsPage() {
       JSON.stringify(b, null, 2),
       "application/json"
     );
+    markBackedUp();
   }
 
   function exportCsv() {
@@ -41,6 +47,7 @@ export default function SettingsPage() {
       transactionsToCsv(b),
       "text/csv"
     );
+    markBackedUp();
   }
 
   async function onImportFile(e: React.ChangeEvent<HTMLInputElement>) {
