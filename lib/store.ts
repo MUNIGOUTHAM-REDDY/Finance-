@@ -61,26 +61,41 @@ function nowISO(): string {
   return new Date().toISOString();
 }
 
+// Cohesive, slightly desaturated palette — reads premium on black.
 const DEFAULT_CATEGORIES: Omit<Category, "id" | "user_id" | "created_at">[] = [
-  { name: "Food", kind: "expense", icon: "🍔", color: "#f59e0b" },
-  { name: "Groceries", kind: "expense", icon: "🛒", color: "#84cc16" },
-  { name: "Transport", kind: "expense", icon: "🚕", color: "#22d3ee" },
-  { name: "Rent", kind: "expense", icon: "🏠", color: "#f97316" },
-  { name: "Bills", kind: "expense", icon: "🧾", color: "#eab308" },
-  { name: "Subscriptions", kind: "expense", icon: "📺", color: "#a78bfa" },
-  { name: "Shopping", kind: "expense", icon: "🛍️", color: "#ec4899" },
-  { name: "Health", kind: "expense", icon: "💊", color: "#ef4444" },
-  { name: "Gym", kind: "expense", icon: "🏋️", color: "#10b981" },
-  { name: "Entertainment", kind: "expense", icon: "🎬", color: "#8b5cf6" },
-  { name: "Travel", kind: "expense", icon: "✈️", color: "#06b6d4" },
-  { name: "Education", kind: "expense", icon: "📚", color: "#3b82f6" },
-  { name: "Other", kind: "expense", icon: "💸", color: "#94a3b8" },
-  { name: "Salary", kind: "income", icon: "💼", color: "#34d399" },
-  { name: "Freelance", kind: "income", icon: "🧑‍💻", color: "#22c55e" },
-  { name: "Interest", kind: "income", icon: "🏦", color: "#10b981" },
-  { name: "Refund", kind: "income", icon: "↩️", color: "#14b8a6" },
-  { name: "Other Income", kind: "income", icon: "➕", color: "#4ade80" },
+  { name: "Food", kind: "expense", icon: "🍔", color: "#D9A05B" },
+  { name: "Groceries", kind: "expense", icon: "🛒", color: "#8DAF6B" },
+  { name: "Transport", kind: "expense", icon: "🚕", color: "#6FA1C0" },
+  { name: "Rent", kind: "expense", icon: "🏠", color: "#CC7E5C" },
+  { name: "Bills", kind: "expense", icon: "🧾", color: "#C2A65B" },
+  { name: "Subscriptions", kind: "expense", icon: "📺", color: "#9E8FC4" },
+  { name: "Shopping", kind: "expense", icon: "🛍️", color: "#C783A6" },
+  { name: "Health", kind: "expense", icon: "💊", color: "#CC7070" },
+  { name: "Gym", kind: "expense", icon: "🏋️", color: "#5FAE93" },
+  { name: "Entertainment", kind: "expense", icon: "🎬", color: "#8C7CC4" },
+  { name: "Travel", kind: "expense", icon: "✈️", color: "#5FA3B0" },
+  { name: "Education", kind: "expense", icon: "📚", color: "#7090C2" },
+  { name: "Other", kind: "expense", icon: "💸", color: "#8A8A94" },
+  { name: "Salary", kind: "income", icon: "💼", color: "#6FB293" },
+  { name: "Freelance", kind: "income", icon: "🧑‍💻", color: "#84AE70" },
+  { name: "Interest", kind: "income", icon: "🏦", color: "#5FAE93" },
+  { name: "Refund", kind: "income", icon: "↩️", color: "#5FAEA2" },
+  { name: "Other Income", kind: "income", icon: "➕", color: "#8DAF6B" },
 ];
+
+// Previous (loud) defaults — used to migrate existing data to the muted palette
+// only when a category's colour is still the old default (i.e. not customised).
+const OLD_CATEGORY_COLORS: Record<string, string> = {
+  Food: "#f59e0b", Groceries: "#84cc16", Transport: "#22d3ee", Rent: "#f97316",
+  Bills: "#eab308", Subscriptions: "#a78bfa", Shopping: "#ec4899", Health: "#ef4444",
+  Gym: "#10b981", Entertainment: "#8b5cf6", Travel: "#06b6d4", Education: "#3b82f6",
+  Other: "#94a3b8", Salary: "#34d399", Freelance: "#22c55e", Interest: "#10b981",
+  Refund: "#14b8a6", "Other Income": "#4ade80",
+};
+const NEW_CATEGORY_COLORS: Record<string, string> = Object.fromEntries(
+  DEFAULT_CATEGORIES.map((c) => [c.name, c.color as string])
+);
+const PALETTE_FLAG = "spendtrack:palette";
 
 const DEFAULT_ACCOUNTS: Omit<Account, "id" | "user_id" | "created_at" | "balance">[] = [
   { name: "Cash", type: "cash", opening_balance: 0, currency: "INR", icon: "💵", color: "#22c55e", archived: false },
@@ -114,7 +129,7 @@ export function getDB(): DB {
   }
   try {
     const parsed = JSON.parse(raw) as Partial<DB>;
-    return {
+    const db: DB = {
       accounts: parsed.accounts ?? [],
       categories: parsed.categories ?? [],
       transactions: parsed.transactions ?? [],
@@ -123,9 +138,27 @@ export function getDB(): DB {
       budgets: parsed.budgets ?? [],
       profile: { ...defaultProfile(), ...(parsed.profile ?? {}) },
     };
+    migratePalette(db);
+    return db;
   } catch {
     return seed(emptyDB());
   }
+}
+
+// One-time: move categories still on the old default colour to the muted palette.
+function migratePalette(db: DB): void {
+  if (typeof window === "undefined") return;
+  if (window.localStorage.getItem(PALETTE_FLAG) === "v2") return;
+  let changed = false;
+  for (const c of db.categories) {
+    const old = OLD_CATEGORY_COLORS[c.name];
+    if (old && (c.color ?? "").toLowerCase() === old.toLowerCase()) {
+      c.color = NEW_CATEGORY_COLORS[c.name];
+      changed = true;
+    }
+  }
+  window.localStorage.setItem(PALETTE_FLAG, "v2");
+  if (changed) window.localStorage.setItem(KEY, JSON.stringify(db));
 }
 
 export function setDB(db: DB): void {

@@ -2,12 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { PageLoader, EmptyState } from "@/components/ui";
 import { TransactionRow } from "@/components/TransactionRow";
-import { BudgetRing, type Slice } from "@/components/BudgetRing";
-import { CategoryPills, type PillItem } from "@/components/CategoryPills";
-import { TimeRangeControl } from "@/components/TimeRangeControl";
+import { StackedBar } from "@/components/StackedBar";
 import { useQuickAdd } from "@/components/QuickAdd";
 import { useDrawer } from "@/components/Drawer";
 import { MenuIcon, ProfileIcon } from "@/components/icons";
@@ -19,23 +17,25 @@ import {
   useTransactions,
 } from "@/lib/hooks";
 import { formatCurrency, monthRange } from "@/lib/format";
-import { rangeFor, type RangeKey } from "@/lib/range";
+
+interface Cat {
+  name: string;
+  icon: string | null;
+  color: string;
+  amount: number;
+}
 
 export default function DashboardPage() {
   const router = useRouter();
   const { open } = useQuickAdd();
   const { open: openDrawer } = useDrawer();
-
-  const [rangeKey, setRangeKey] = useState<RangeKey>("1M");
-  const range = useMemo(() => rangeFor(rangeKey), [rangeKey]);
   const month = useMemo(() => monthRange(), []);
 
   const { data: accounts, isLoading: la } = useAccounts();
-  const { data: rangeTx, isLoading: lt } = useTransactions({
-    start: range.start,
-    end: range.end,
+  const { data: monthTx, isLoading: lt } = useTransactions({
+    start: month.start,
+    end: month.end,
   });
-  const { data: monthTx } = useTransactions({ start: month.start, end: month.end });
   const { data: recent } = useTransactions({ limit: 6 });
   const { data: budgets } = useBudgets();
   const { data: categories } = useCategories();
@@ -46,26 +46,29 @@ export default function DashboardPage() {
     [accounts]
   );
 
-  // Spend-by-category for the selected range.
-  const { total, slices, pills } = useMemo(() => {
-    const byCat = new Map<string, PillItem>();
-    for (const t of rangeTx ?? []) {
-      if (t.type !== "expense") continue;
-      const name = t.category?.name ?? "Uncategorised";
-      const color = t.category?.color ?? "#3b82f6";
-      const cur = byCat.get(name);
-      if (cur) cur.amount += t.amount;
-      else byCat.set(name, { name, icon: t.category?.icon ?? null, color, amount: t.amount });
+  const { spent, income, cats } = useMemo(() => {
+    let income = 0;
+    const byCat = new Map<string, Cat>();
+    for (const t of monthTx ?? []) {
+      if (t.type === "income") income += t.amount;
+      if (t.type === "expense") {
+        const name = t.category?.name ?? "Uncategorised";
+        const color = t.category?.color ?? "#8A8A94";
+        const cur = byCat.get(name);
+        if (cur) cur.amount += t.amount;
+        else byCat.set(name, { name, icon: t.category?.icon ?? null, color, amount: t.amount });
+      }
     }
-    const pills = [...byCat.values()].sort((a, b) => b.amount - a.amount);
-    const slices: Slice[] = pills.map((p) => ({ name: p.name, value: p.amount, color: p.color }));
-    const total = pills.reduce((s, p) => s + p.amount, 0);
-    return { total, slices, pills };
-  }, [rangeTx]);
+    const cats = [...byCat.values()].sort((a, b) => b.amount - a.amount);
+    const spent = cats.reduce((s, c) => s + c.amount, 0);
+    return { spent, income, cats };
+  }, [monthTx]);
 
-  const overallBudget = (budgets ?? []).find((b) => b.category_id === null)?.amount;
+  const overall = (budgets ?? []).find((b) => b.category_id === null)?.amount;
+  const budgetPct = overall ? spent / overall : 0;
+  const budgetColor =
+    budgetPct >= 1 ? "bg-negative" : budgetPct >= 0.8 ? "bg-warn" : "bg-positive";
 
-  // Budget alerts use the calendar month regardless of the ring range.
   const budgetAlerts = useMemo(() => {
     if (!budgets || budgets.length === 0) return [];
     const spentById = new Map<string, number>();
@@ -78,8 +81,8 @@ export default function DashboardPage() {
     const catName = (id: string) => categories?.find((c) => c.id === id)?.name ?? "Budget";
     return budgets
       .map((b) => {
-        const spent = b.category_id === null ? total : spentById.get(b.category_id) ?? 0;
-        return { label: b.category_id === null ? "Overall" : catName(b.category_id), pct: spent / b.amount };
+        const s = b.category_id === null ? total : spentById.get(b.category_id) ?? 0;
+        return { label: b.category_id === null ? "Overall" : catName(b.category_id), pct: s / b.amount };
       })
       .filter((a) => a.pct >= 0.8)
       .sort((a, b) => b.pct - a.pct);
@@ -97,62 +100,88 @@ export default function DashboardPage() {
   return (
     <div>
       {/* Top bar */}
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-7 flex items-center justify-between">
         <button
           onClick={openDrawer}
           aria-label="Menu"
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-surface text-text active:bg-surface-2"
+          className="flex h-10 w-10 items-center justify-center rounded-full text-muted active:bg-surface"
         >
-          <MenuIcon className="h-5 w-5" />
+          <MenuIcon className="h-6 w-6" />
         </button>
-        <div className="text-center">
-          <p className="text-[11px] uppercase tracking-wide text-muted">Balance</p>
-          <p className="text-sm font-semibold text-text">{formatCurrency(totalBalance)}</p>
-        </div>
         <Link
           href="/profile"
           aria-label="Profile"
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-surface text-text active:bg-surface-2"
+          className="flex h-10 w-10 items-center justify-center rounded-full text-muted active:bg-surface"
         >
-          <ProfileIcon className="h-6 w-6" />
+          <ProfileIcon className="h-7 w-7" />
         </Link>
       </div>
 
-      {/* Hero ring */}
-      <div className="mb-4 mt-2">
-        <BudgetRing
-          slices={slices}
-          total={total}
-          budget={rangeKey === "1M" ? overallBudget : undefined}
-          rangeLabel={range.label}
-        />
+      {/* Balance hero */}
+      <div className="mb-7">
+        <p className="text-xs uppercase tracking-widest text-muted">Balance</p>
+        <p className="mt-1 text-[2.75rem] font-semibold leading-none tracking-tight text-text">
+          {formatCurrency(totalBalance)}
+        </p>
+        <p className="mt-2.5 text-sm text-muted">
+          Spent <span className="text-text">{formatCurrency(spent)}</span> · Income{" "}
+          <span className="text-positive">{formatCurrency(income)}</span>
+          <span className="text-muted/70"> · this month</span>
+        </p>
       </div>
 
-      {/* Category pills */}
-      <div className="mb-3">
-        <CategoryPills items={pills} />
-      </div>
-
-      {/* Time range */}
-      <div className="mb-4">
-        <TimeRangeControl value={rangeKey} onChange={setRangeKey} />
-      </div>
-
-      {/* Budget alert */}
-      {budgetAlerts.length > 0 && (
+      {/* Budget progress (only if an overall budget is set) */}
+      {overall ? (
+        <Link href="/budgets" className="card mb-4 block">
+          <div className="mb-2 flex items-baseline justify-between">
+            <p className="text-sm font-medium text-text">This month</p>
+            <p className="text-sm text-muted">
+              {formatCurrency(spent)} / {formatCurrency(overall)}
+            </p>
+          </div>
+          <div className="h-2.5 w-full overflow-hidden rounded-full bg-surface-2">
+            <div
+              className={`h-full rounded-full ${budgetColor}`}
+              style={{ width: `${Math.min(100, budgetPct * 100)}%` }}
+            />
+          </div>
+          <p className={`mt-2 text-xs ${budgetPct >= 1 ? "text-negative" : "text-muted"}`}>
+            {budgetPct >= 1
+              ? `Over by ${formatCurrency(spent - overall)}`
+              : `${formatCurrency(overall - spent)} left`}
+          </p>
+        </Link>
+      ) : budgetAlerts.length > 0 ? (
         <Link
           href="/budgets"
-          className={`card mb-4 block ${
-            budgetAlerts[0].pct >= 1 ? "border-negative/40" : "border-warn/40"
-          }`}
+          className={`card mb-4 block ${budgetAlerts[0].pct >= 1 ? "border-negative/40" : "border-warn/40"}`}
         >
           <p className="text-sm font-medium text-text">
-            {budgetAlerts[0].pct >= 1 ? "⚠️ Over budget" : "Heads up on budget"}
+            {budgetAlerts[0].pct >= 1 ? "Over budget" : "Heads up on budget"}
           </p>
           <p className="mt-1 text-xs text-muted">
             {budgetAlerts.slice(0, 3).map((a) => `${a.label} ${Math.round(a.pct * 100)}%`).join(" · ")}
-            {budgetAlerts.length > 3 ? " · …" : ""}
           </p>
+        </Link>
+      ) : null}
+
+      {/* Where it went */}
+      {cats.length > 0 && (
+        <Link href="/insights" className="card mb-4 block">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm font-medium text-text">Where it went</p>
+            <span className="text-xs text-accent">Insights →</span>
+          </div>
+          <StackedBar segs={cats.map((c) => ({ color: c.color, value: c.amount }))} />
+          <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2">
+            {cats.slice(0, 6).map((c) => (
+              <div key={c.name} className="flex items-center gap-2 text-sm">
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c.color }} />
+                <span className="min-w-0 flex-1 truncate text-muted">{c.name}</span>
+                <span className="shrink-0 text-text">{formatCurrency(c.amount)}</span>
+              </div>
+            ))}
+          </div>
         </Link>
       )}
 
@@ -167,11 +196,7 @@ export default function DashboardPage() {
         {recent && recent.length > 0 ? (
           <div className="divide-y divide-border">
             {recent.map((t) => (
-              <TransactionRow
-                key={t.id}
-                tx={t}
-                onClick={() => router.push(`/transaction/${t.id}`)}
-              />
+              <TransactionRow key={t.id} tx={t} onClick={() => router.push(`/transaction/${t.id}`)} />
             ))}
           </div>
         ) : (
